@@ -1,4 +1,4 @@
-# 项目初始化
+# 进行组件库初始化
 
 1\. 基本目录结构。
 
@@ -74,11 +74,9 @@ export default {
 
 ```html
 <template>
-  <div>
-    <button>
-      <slot />
-    </button>
-  </div>
+  <button class="if-button">
+    <slot />
+  </button>
 </template>
 
 <script setup>
@@ -250,4 +248,447 @@ app.mount("#app");
 ```bash
 pnpm dev
 ```
+
+# 如何搭建组件文档
+
+1\. 搭建 vitepress 文档。
+
+docs 目录
+
+```bash
+npx vitepress init
+```
+
+```bash
+$ npx vitepress init
+
+┌  Welcome to VitePress!
+│
+◇  Where should VitePress initialize the config?
+│  ./
+│
+◇  Site title:
+│  IfUI
+│
+◇  Site description:
+│  This is a fantastic UI framework.
+│
+◇  Theme:
+│  Default Theme
+│
+◇  Use TypeScript for config and theme files?
+│  No
+│
+◇  Add VitePress npm scripts to package.json?
+│  No
+│
+└  You're all set! Now run npx vitepress dev and start writing.
+```
+
+```bash
+📦docs
+ ┣ 📂.vitepress
+ ┃ ┣ 📂cache
+ ┃ ┗ 📜config.mjs
+ ┣ 📜api-examples.md
+ ┣ 📜index.md
+ ┗ 📜markdown-examples.md
+```
+
+根目录
+
+```bash
+pnpm i vitepress -D -w
+```
+
+根 package.json
+
+```json
+{
+  "docs:dev": "vitepress dev docs",
+  "docs:build": "vitepress build docs",
+  "docs:preview": "vitepress preview docs"
+  // ...
+}
+```
+
+运行
+
+```bash
+pnpm docs:dev
+```
+
+<img src="./assets/image-20250312191836639.png" 
+     style="border: 2px solid #333; border-radius: 8px;" 
+     alt="image-20250312191836639"/>
+
+要展示我们的组件，需要先安装，通过[自定义主题](https://vitepress.dev/zh/guide/custom-theme)，安装我们的组件库。
+
+docs\.vitepress\theme\index.js
+
+```js
+import DefaultTheme from "vitepress/theme";
+import IfUI from "@ifui/components";
+
+export default {
+  ...DefaultTheme,
+  enhanceApp: async ({ app, router, siteData }) => {
+    app.use(IfUI);
+  },
+};
+```
+
+清除里面的内容，放我们自己的组件观察效果，docs\markdown-examples.md
+
+```html
+<if-button>Hello World</if-button>
+```
+
+![image-20250312192405311](./assets/image-20250312192405311.png)
+
+准备样式，根
+
+```bash
+pnpm i less less-loader -D -w
+```
+
+packages\theme-chalk\index.less
+
+```less
+.if-button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  height: 32px;
+  white-space: nowrap;
+  color: #fff;
+  text-align: center;
+  outline: none;
+  user-select: none;
+  background-color: #67c23a;
+  border: 1px solid #dcdfe6;
+  border-color: #67c23a;
+}
+```
+
+在文档注册组件的时候导入样式，`docs\.vitepress\theme\index.js`
+
+```less
+import DefaultTheme from "vitepress/theme";
+import IfUI from "@ifui/components";
+import "@ifui/theme-chalk/index.less";
+
+export default {
+  ...DefaultTheme,
+  enhanceApp: async ({ app, router, siteData }) => {
+    app.use(IfUI);
+  },
+};
+
+```
+
+确保之前的组件代码，packages\components\button\src\button.vue
+
+```html
+<template>
+  <button class="if-button">
+    <slot />
+  </button>
+</template>
+
+<script setup>
+defineOptions({
+  name: "if-button",
+});
+</script>
+```
+
+会发现已经添加上样式拉。
+
+
+
+如何预览组件源码？
+
+```bash
+📦.vitepress
+ ┣ 📂theme
+ ┃ ┣ 📂preview
+ ┃ ┃ ┗ 📜index.vue
+ ┃ ┗ 📜index.ts # 主题配置入口
+ ┗ 📜config.mts
+```
+
+
+
+`docs\.vitepress\theme\code-preview\index.vue`
+
+```html
+<template>
+  <div><slot /></div>
+</template>
+
+<script setup></script>
+
+<style scoped></style>
+
+```
+
+`docs\.vitepress\theme\index.ts`
+
+```js
+import DefaultTheme from "vitepress/theme";
+import IfUI from "@ifui/components";
+import "@ifui/theme-chalk/index.less";
+import CodePreview from "./code-preview/index.vue";
+export default {
+  ...DefaultTheme,
+  enhanceApp: async ({ app, router, siteData }) => {
+    app.use(IfUI);
+    app.component("CodePreview", CodePreview);
+  },
+};
+```
+
+在 markdown-examples.md 中应用一下我们注册的组件，看下是否成功。
+
+```html
+<if-button>Hello World</if-button>
+
+<code-preview>🎉</code-preview>
+```
+
+
+
+docs\components\button\index.md
+
+```md
+# Button
+
+<code-preview>
+  <if-button>button</if-button>
+</code-preview>
+```
+
+`docs\.vitepress\config.mts`
+
+```ts
+import { defineConfig } from "vitepress";
+
+// https://vitepress.dev/reference/site-config
+export default defineConfig({
+  title: "IfUI",
+  description: "An UI framework.",
+  themeConfig: {
+    // https://vitepress.dev/reference/default-theme-config
+    nav: [
+      { text: "首页", link: "/" },
+      { text: "组件", link: "/components/button/" },
+    ],
+
+    sidebar: [
+      {
+        text: "基本",
+        items: [{ text: "Button 按钮", link: "/components/button/" }],
+      },
+    ],
+
+    socialLinks: [
+      { icon: "github", link: "https://github.com/vuejs/vitepress" },
+    ],
+  },
+});
+```
+
+![image-20250312193539401](./assets/image-20250312193539401.png)
+
+展示代码，`docs\.vitepress\theme\code-preview\index.vue`
+
+```html
+<template>
+  <div class="preview">
+    <div class="preview-content">
+      <slot />
+    </div>
+    <div class="code-wrap">
+      <div class="code" :class="{ 'show-code': showCode }">
+        <div class="code-inner">
+          <pre>{{sourceCode}}</pre>
+        </div>
+      </div>
+      <div class="code-btn" @click="state.showCode = !state.showCode">
+        {{ showCode ? "隐藏" : "显示" }}代码
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+  import { onMounted, reactive, toRefs } from "vue";
+
+  const props = defineProps({
+    compName: {
+      type: String,
+      default: "",
+    },
+    demoName: {
+      type: String,
+      default: "",
+    },
+  });
+  const cmpCode = async () => {
+    console.log(props.compName, props.demoName, 888);
+    const data = await import(
+      `../../../components/${props.compName}/${props.demoName}.vue?raw`
+    );
+    state.sourceCode = data.default;
+  };
+
+  onMounted(cmpCode);
+
+  const state = reactive({
+    sourceCode: "",
+    showCode: false,
+  });
+
+  const { sourceCode, showCode } = toRefs(state);
+</script>
+
+<style scoped>
+  .preview {
+    margin: 20px 0;
+    border: 1px solid #efefef;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .preview-content {
+    padding: 20px;
+  }
+  .code-btn {
+    position: relative;
+    height: 46px;
+    line-height: 46px;
+    color: #666;
+    text-align: center;
+    background: #f7f7f7;
+    cursor: pointer;
+    z-index: 100;
+  }
+  .code-btn:hover {
+    background: #f2f2f2;
+  }
+  .code {
+    border-top: 1px solid #efefef;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+  .code .code-inner {
+    overflow: hidden;
+  }
+  .show-code {
+    grid-template-rows: 1fr;
+  }
+</style>
+```
+
+此时会有报错，不用管，继续。
+
+docs\components\button\basic.vue
+
+```html
+<template>
+  <if-button>Hello</if-button>&nbsp;
+  <if-button>World</if-button>
+</template>
+```
+
+`docs\components\button\index.md`
+
+```html
+<script setup>
+import basic from './basic.vue'
+</script>
+
+# Button
+
+<code-preview comp-name="button" demo-name="basic">
+  <basic/>
+</code-preview>
+```
+
+此时效果如下：
+
+![image-20250312194800767](./assets/image-20250312194800767.png)
+
+处理代码高亮问题，根目录安装
+
+```bash
+pnpm i highlight.js @highlightjs/vue-plugin -w
+```
+
+使用 `docs\.vitepress\theme\index.ts`
+
+```ts
+import DefaultTheme from "vitepress/theme";
+import IfUI from "@ifui/components";
+import "@ifui/theme-chalk/index.less";
+import CodePreview from "./code-preview/index.vue";
+import "highlight.js/styles/base16/summerfruit-light.css";
+import hljsVuePlugin from "@highlightjs/vue-plugin";
+export default {
+  ...DefaultTheme,
+  enhanceApp: async ({ app, router, siteData }) => {
+    app.use(IfUI);
+    app.component("CodePreview", CodePreview);
+    app.use(hljsVuePlugin);
+  },
+};
+```
+
+改造 docs\.vitepress\theme\code-preview\index.vue
+
+
+
+
+
+```html
+<template>
+  <div class="preview">
+    <div class="preview-content">
+      <slot />
+    </div>
+    <div class="code-wrap">
+      <div class="code" :class="{ 'show-code': showCode }">
+        <div class="code-inner">
+          <!-- #2 -->
+          <highlightjs autodetect :code="sourceCode" />
+        </div>
+      </div>
+      <div class="code-btn" @click="state.showCode = !state.showCode">
+        {{ showCode ? "隐藏" : "显示" }}代码
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, reactive, toRefs } from "vue";
+// #1
+import "highlight.js";
+// ...
+</script>
+<style scoped>
+/* ... */
+</style>
+```
+
+处理访问 http://localhost:5174/markdown-examples.html 时的报错问题，删除 code-preview 组件，docs\markdown-examples.md
+
+```html
+<if-button>Hello World</if-button>
+```
+
+
 

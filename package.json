@@ -4,19 +4,27 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "vite examples"
+    "dev": "vite examples",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@highlightjs/vue-plugin": "^2.1.0",
     "@ifui/components": "workspace:^",
     "@ifui/examples": "workspace:^",
     "@ifui/theme-chalk": "workspace:^",
-    "@ifui/utils": "workspace:^"
+    "@ifui/utils": "workspace:^",
+    "highlight.js": "^11.11.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^6.2.1"
+    "less": "^4.2.2",
+    "less-loader": "^12.2.0",
+    "vite": "^6.2.1",
+    "vitepress": "^1.6.3"
   }
 }

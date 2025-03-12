@@ -1,13 +1,11 @@
 <template>
-  <div class="t-button">
-    <button>
-      <slot />
-    </button>
-  </div>
+  <button class="if-button">
+    <slot />
+  </button>
 </template>
 
 <script setup>
 defineOptions({
-  name: "t-button",
+  name: "if-button",
 });
 </script>
