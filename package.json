@@ -1,0 +1,22 @@
+{
+  "name": "ifui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite examples"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ifui/components": "workspace:^",
+    "@ifui/examples": "workspace:^",
+    "@ifui/theme-chalk": "workspace:^",
+    "@ifui/utils": "workspace:^"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.2.1"
+  }
+}
