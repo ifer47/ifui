@@ -1,4 +1,6 @@
 import * as components from "./components";
+// mark
+import "@ifui/theme-chalk/index.less";
 
 const FUNCTION_COMP = ["IfMessage"];
 

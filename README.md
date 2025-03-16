@@ -2236,3 +2236,457 @@ const handleMessage = (type, showClose, time) => {
 
 ```
 
+# Rollup 和 Vite 打包
+
+## Rollup
+
+Rollup 是一个专门的 JS 模块打包器。
+
+
+
+```bash
+pnpm install -D rollup @rollup/plugin-node-resolve rollup-plugin-vue -w
+```
+
+
+
+rollup.config.js
+
+```js
+import resolve from "@rollup/plugin-node-resolve";
+import vuePlugin from "rollup-plugin-vue";
+
+export default {
+  input: "./packages/components/index.js",
+  output: {
+    file: "dist/es.js",
+    name: "IfUI",
+    format: "es",
+  },
+  plugins: [resolve(), vuePlugin()],
+  external: ["vue"],
+};
+
+```
+
+package.json
+
+```json
+{
+  // ...
+  // 配置文件使用的是 ESM 的语法
+  "type": "module",
+  "scripts": {
+    // ...
+    "build": "rollup -c"
+  },
+  // ...
+}
+
+```
+
+打包
+
+```bash
+pnpm build
+```
+
+![image-20250316202844346](./assets/image-20250316202844346.png)
+
+测试是否可以正常使用
+
+```js
+import { createApp } from "vue";
+import App from "./App.vue";
+/* import IfUI from '@ifui/components'
+import "@ifui/theme-chalk/index.less"; */
+import IfUI from "../dist/es.js";
+const app = createApp(App);
+app.use(IfUI)
+app.mount("#app");
+
+```
+
+
+
+```bash
+pnpm dev
+```
+
+![image-20250316203132340](./assets/image-20250316203132340.png)
+
+发现没有样式，如何打包样式呢？
+
+```bash
+pnpm i rollup-plugin-postcss autoprefixer -D -w
+
+```
+
+配置 rollup.config.js
+
+```js
+import resolve from "@rollup/plugin-node-resolve";
+import vuePlugin from "rollup-plugin-vue";
+// #1
+import postcss from "rollup-plugin-postcss";
+import autoprefixer from "autoprefixer";
+
+export default {
+  input: "./packages/components/index.js",
+  output: {
+    file: "dist/es.js",
+    name: "IfUI",
+    format: "es",
+  },
+  plugins: [
+    resolve(),
+    vuePlugin(),
+    // #2
+    postcss({
+      extract: "theme-chalk/style.css",
+      plugins: [autoprefixer()],
+    }),
+  ],
+  external: ["vue"],
+};
+
+```
+
+使用 postcss 来抽离 js 中所引入的样式，我们在组件库中单独引入样式文件，再使用 `extract` 抽离打包到 `dist/theme-chalk/style.css` 中。
+
+
+
+packages\components\index.js
+
+```js
+import * as components from "./components";
+// mark，这个是给打包时候用的
+import "@ifui/theme-chalk/index.less";
+
+const FUNCTION_COMP = ["IfMessage"];
+
+export default {
+  install(app) {
+    // Object.entries(components) // ['TButton', { install, name, render, setup }]
+    Object.entries(components).forEach(([key, value]) => {
+      if (!FUNCTION_COMP.includes(key)) app.component(key, value);
+    });
+  },
+};
+
+export const IfMessage = components.IfMessage;
+
+```
+
+
+
+```bash
+pnpm build
+```
+
+
+
+样式打包成功，但是并没有 font 文件，这时候可以通过 rollup-plugin-copy 这个插件进行拷贝。
+
+```bash
+pnpm i rollup-plugin-copy -D -w
+
+```
+
+将 `packages/theme-chalk/fonts/` 路径下的所有文件打包拷贝到 `dist/theme-chalk/fonts/` 下
+
+
+
+rollup.config.js
+
+```js
+import resolve from "@rollup/plugin-node-resolve";
+import vuePlugin from "rollup-plugin-vue";
+import postcss from "rollup-plugin-postcss";
+import autoprefixer from "autoprefixer";
+// #1
+import copy from "rollup-plugin-copy";
+
+export default {
+  input: "./packages/components/index.js",
+  output: {
+    file: "dist/es.js",
+    name: "IfUI",
+    format: "es",
+  },
+  plugins: [
+    resolve(),
+    vuePlugin(),
+    postcss({
+      extract: "theme-chalk/style.css",
+      plugins: [autoprefixer()],
+    }),
+    // #2
+    copy({
+      targets: [{ src: "packages/theme-chalk/fonts/*", dest: "dist/theme-chalk/fonts/" }],
+    }),
+  ],
+  external: ["vue"],
+};
+
+```
+
+![image-20250316204751677](./assets/image-20250316204751677.png)
+
+字体路径不对，可以通过 postcss-url 插件来处理路径。
+
+
+
+```js
+pnpm i postcss-url -D -w
+
+```
+
+rollup.config.js
+
+```js
+import resolve from "@rollup/plugin-node-resolve";
+import vuePlugin from "rollup-plugin-vue";
+import postcss from "rollup-plugin-postcss";
+import autoprefixer from "autoprefixer";
+import copy from "rollup-plugin-copy";
+// #1
+import url from "postcss-url";
+
+export default {
+  input: "./packages/components/index.js",
+  output: {
+    file: "dist/es.js",
+    name: "IfUI",
+    format: "es",
+  },
+  plugins: [
+    resolve(),
+    vuePlugin(),
+    postcss({
+      extract: "theme-chalk/style.css",
+      plugins: [
+        autoprefixer(),
+        // #2
+        url({
+          url: "copy",
+          basePath: "fonts",
+          assetsPath: "fonts",
+        }),
+      ],
+    }),
+    copy({
+      targets: [
+        {
+          src: "packages/theme-chalk/fonts/*",
+          dest: "dist/theme-chalk/fonts/",
+        },
+      ],
+    }),
+  ],
+  external: ["vue"],
+};
+
+```
+
+也可以打包为其他格式，比如 cjs(CommonJS)，umd 等
+
+rollup.config.js
+
+```js
+import resolve from "@rollup/plugin-node-resolve";
+import vuePlugin from "rollup-plugin-vue";
+import postcss from "rollup-plugin-postcss";
+import autoprefixer from "autoprefixer";
+import copy from "rollup-plugin-copy";
+import url from "postcss-url";
+
+export default {
+  input: "./packages/components/index.js",
+  output: [
+    {
+      file: "dist/es.js",
+      name: "IfUI",
+      format: "es",
+    },
+    {
+      file: "dist/cjs.js",
+      name: "IfUI",
+      format: "cjs",
+      exports: "named",
+    },
+    {
+      file: "dist/umd.js",
+      name: "IfUI",
+      format: "umd",
+      exports: "named",
+      globals: {
+        vue: "Vue",
+      },
+    },
+  ],
+  plugins: [
+    resolve(),
+    vuePlugin(),
+    postcss({
+      extract: "theme-chalk/style.css",
+      plugins: [
+        autoprefixer(),
+        url({
+          url: "copy",
+          basePath: "fonts",
+          assetsPath: "fonts",
+        }),
+      ],
+    }),
+    copy({
+      targets: [
+        {
+          src: "packages/theme-chalk/fonts/*",
+          dest: "dist/theme-chalk/fonts/",
+        },
+      ],
+    }),
+  ],
+  external: ["vue"],
+};
+
+```
+
+
+
+![image-20250316211505555](./assets/image-20250316211505555.png)
+
+## Vite
+
+也可以使用 Vite 来打包
+
+build\vite.es.config.js
+
+```js
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import path from "path";
+
+export default defineConfig({
+  plugins: [vue()],
+  build: {
+    outDir: "dist/es",
+    lib: {
+      entry: path.resolve(__dirname, "../packages/components/index.js"),
+      name: "IfUI",
+      fileName: "index",
+      formats: ["es"],
+    },
+    rollupOptions: {
+      external: ["vue"],
+      output: {
+        exports: "named",
+        globals: {
+          vue: "Vue",
+        },
+      },
+    },
+  },
+});
+
+```
+
+build\vite.umd.config.js
+
+```js
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import path from "path";
+
+export default defineConfig({
+  plugins: [vue()],
+  build: {
+    outDir: "dist/umd",
+    lib: {
+      entry: path.resolve(__dirname, "../packages/components/index.js"),
+      name: "IfUI",
+      fileName: "index",
+      formats: ["umd"],
+    },
+    rollupOptions: {
+      external: ["vue"],
+      output: {
+        exports: "named",
+        globals: {
+          vue: "Vue",
+        },
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === "index.css") {
+            return "style.css";
+          }
+          return assetInfo.name;
+        },
+      },
+    },
+  },
+});
+
+```
+
+packages.json
+
+```json
+{
+  "name": "ifui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite examples",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "build": "rollup -c",
+    "build:es": "vite build --config ./build/vite.es.config.js",
+    "build:umd": "vite build --config ./build/vite.umd.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@highlightjs/vue-plugin": "^2.1.0",
+    "@ifui/components": "workspace:^",
+    "@ifui/examples": "workspace:^",
+    "@ifui/theme-chalk": "workspace:^",
+    "@ifui/utils": "workspace:^",
+    "highlight.js": "^11.11.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "autoprefixer": "^10.4.21",
+    "less": "^4.2.2",
+    "less-loader": "^12.2.0",
+    "postcss-url": "^10.1.3",
+    "rollup": "^4.35.0",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-vue": "^6.0.0",
+    "vite": "^6.2.1",
+    "vitepress": "^1.6.3"
+  }
+}
+
+```
+examples\index.js
+
+```js
+import { createApp } from "vue";
+import App from "./App.vue";
+/* import IfUI from '@ifui/components'
+import "@ifui/theme-chalk/index.less"; */
+// import IfUI from "../dist/es.js";
+import IfUI from "../dist/es/index"
+const app = createApp(App);
+app.use(IfUI)
+app.mount("#app");
+
+```
+
