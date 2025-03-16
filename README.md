@@ -1943,3 +1943,296 @@ defineProps(ButtonProps);
 
 ```
 
+examples\App.vue
+
+```html
+<template>
+  <div>
+    <!-- button -->
+    <h2>按钮</h2>
+    <h3>Button</h3>
+    <div>
+      <if-button>default</if-button>
+      <if-button type="primary">primary</if-button>
+      <if-button type="success">success</if-button>
+      <if-button type="info">info</if-button>
+      <if-button type="warning">warning</if-button>
+      <if-button type="danger">danger</if-button>
+    </div>
+    <h3>Button size</h3>
+    <div style="margin-bottom: 10px">
+      <if-button type="primary" size="small">primary</if-button>
+      <if-button type="success" size="small">success</if-button>
+      <if-button type="info" size="small">info</if-button>
+      <if-button type="warning" size="small">warning</if-button>
+      <if-button type="danger" size="small">danger</if-button>
+    </div>
+    <div>
+      <if-button type="primary" size="mini">primary</if-button>
+      <if-button type="success" size="mini">success</if-button>
+      <if-button type="info" size="mini">info</if-button>
+      <if-button type="warning" size="mini">warning</if-button>
+      <if-button type="danger" size="mini">danger</if-button>
+    </div>
+    <h3>Button round</h3>
+    <div style="margin-bottom: 10px">
+      <if-button round>default</if-button>
+      <if-button type="primary" round>primary</if-button>
+      <if-button type="success" round>success</if-button>
+      <if-button type="info" round>info</if-button>
+      <if-button type="warning" round>warning</if-button>
+      <if-button type="danger" round>danger</if-button>
+    </div>
+
+    <h3>Button disabled</h3>
+    <div>
+      <if-button type="primary" disabled>primary</if-button>
+      <if-button type="success" disabled>success</if-button>
+      <if-button type="info" disabled>info</if-button>
+      <if-button type="warning" disabled>warning</if-button>
+      <if-button type="danger" disabled>danger</if-button>
+    </div>
+
+    <h3>Button icon</h3>
+
+    <div>
+      <if-button type="primary" icon="charif-bar">primary</if-button>
+      <if-button type="success" icon="calendar">success</if-button>
+      <if-button type="info" icon="data-view"></if-button>
+      <if-button type="primary" icon="download"></if-button>
+    </div>
+
+    <h3>Button loading</h3>
+
+    <div>
+      <if-button type="primary" :loading="loading">加载中</if-button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from "vue";
+const loading = ref(true);
+
+setTimeout(() => {
+  loading.value = false;
+}, 3000);
+</script>
+
+<style scoped></style>
+
+```
+
+
+
+# 开发 Message 组件
+
+```bash
+📦message
+ ┣ 📂src
+ ┃ ┣ 📜message.js
+ ┃ ┗ 📜message.vue
+ ┗ 📜index.js
+```
+
+packages\components\message\src\message.js
+
+```js
+const MESSAGE_TYPE = ["success", "info", "warning", "error"];
+
+export const Props = {
+  type: {
+    type: String,
+    default: "",
+    validator(value) {
+      return MESSAGE_TYPE.includes(value);
+    },
+  },
+  message: {
+    type: String,
+    default: "",
+  },
+  showClose: {
+    type: Boolean,
+    default: false,
+  },
+  duration: {
+    type: Number,
+    default: 3000,
+  },
+};
+
+```
+
+packages\components\message\src\message.vue
+
+```html
+<template>
+  <div class="if-message" :class="`if-message__${type}`">
+    <i :class="`if-icon icon-${MESSAGE_ICON_NAME[type]}`"></i>
+    <span class="if-message__text">{{ message }}</span>
+    <i
+      class="if-icon icon-close-bold if-message_close_icon"
+      v-if="showClose"
+      @click="close"
+    ></i>
+  </div>
+</template>
+
+<script setup>
+import { getCurrentInstance } from "vue";
+import { Props } from "./message";
+
+defineProps(Props);
+
+const emit = defineEmits(["close"]);
+
+const MESSAGE_ICON_NAME = {
+  success: "success-filling",
+  info: "prompt-filling",
+  warning: "warning-filling",
+  error: "delete-filling",
+};
+
+const instance = getCurrentInstance();
+
+const close = () => {
+  emit("close", instance.vnode.el.parentElement);
+};
+</script>
+
+```
+
+packages\components\message\index.js
+
+```js
+import Message from "./src/message.vue";
+import { h, render } from "vue";
+
+let messageInstaceList = [];
+
+const MESSAGE_START_TOP = 56; // 起始的高度
+const MESSAGE_HEIGHT = 44; // 组件高度
+const MESSAGE_GAP = 16; // 间隔高度
+
+const setDestoryClock = (element, time = 3000) => {
+  setTimeout(() => {
+    destoryMessageElement(element);
+  }, time);
+};
+
+const destoryMessageElement = (element) => {
+  if (!element.parentElement?.contains(element)) return;
+  element.parentElement?.removeChild(element);
+  messageInstaceList = messageInstaceList.filter((item) => item !== element);
+  messageInstaceList.forEach((item, index) => {
+    item.style.top =
+      MESSAGE_START_TOP + index * (MESSAGE_HEIGHT + MESSAGE_GAP) + "px";
+  });
+};
+
+// #1
+export const IfMessage = (config) => {
+  const VNode = h(Message, {
+    ...config,
+    onClose(element) {
+      destoryMessageElement(element);
+    },
+  });
+  const container = document.createElement("div");
+  container.setAttribute("class", "if-message-container");
+  document.body.append(container);
+  messageInstaceList.push(container);
+  container.style.top =
+    MESSAGE_START_TOP +
+    (messageInstaceList.length - 1) * (MESSAGE_HEIGHT + MESSAGE_GAP) +
+    "px";
+  render(VNode, container);
+  setDestoryClock(container, config.duration);
+};
+
+export default IfMessage;
+
+```
+
+packages\components\components.js
+
+```js
+export { IfButton } from "./button";
+export { IfMessage } from './message'
+```
+
+packages\components\index.js
+
+```js
+import * as components from "./components";
+
+const FUNCTION_COMP = ["IfMessage"];
+
+export default {
+  install(app) {
+    // Object.entries(components) // ['TButton', { install, name, render, setup }]
+    Object.entries(components).forEach(([key, value]) => {
+      if (!FUNCTION_COMP.includes(key)) app.component(key, value);
+    });
+  },
+};
+
+export const IfMessage = components.IfMessage;
+
+```
+
+examples\App.vue
+
+```html
+<template>
+  <div>
+    <!-- message -->
+    <h2>消息</h2>
+    <h3>Message</h3>
+    <if-button type="success" @click="handleMessage('success')"
+      >success</if-button
+    >
+    <if-button type="info" @click="handleMessage('info')">info</if-button>
+    <if-button type="warning" @click="handleMessage('warning')"
+      >warning</if-button
+    >
+    <if-button type="danger" @click="handleMessage('error')">danger</if-button>
+    <h3>Message close</h3>
+    <if-button type="success" @click="handleMessage('success', true)"
+      >success</if-button
+    >
+    <if-button type="info" @click="handleMessage('info', true)">info</if-button>
+    <if-button type="warning" @click="handleMessage('warning', true)"
+      >warning</if-button
+    >
+    <if-button type="danger" @click="handleMessage('error', true)"
+      >danger</if-button
+    >
+    <h3>Message time</h3>
+    <if-button type="success" @click="handleMessage('success', true, 1000)"
+      >1s</if-button
+    >
+    <if-button type="success" @click="handleMessage('success', true, 5000)"
+      >5s</if-button
+    >
+  </div>
+</template>
+
+<script setup>
+import { IfMessage } from "@ifui/components";
+
+const handleMessage = (type, showClose, time) => {
+  IfMessage({
+    type,
+    message: type,
+    showClose,
+    duration: time,
+  });
+};
+</script>
+
+<style scoped></style>
+
+```
+

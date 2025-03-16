@@ -59,6 +59,35 @@
     <div>
       <if-button type="primary" :loading="loading">加载中</if-button>
     </div>
+    <!-- message -->
+    <h2>消息</h2>
+    <h3>Message</h3>
+    <if-button type="success" @click="handleMessage('success')"
+      >success</if-button
+    >
+    <if-button type="info" @click="handleMessage('info')">info</if-button>
+    <if-button type="warning" @click="handleMessage('warning')"
+      >warning</if-button
+    >
+    <if-button type="danger" @click="handleMessage('error')">danger</if-button>
+    <h3>Message close</h3>
+    <if-button type="success" @click="handleMessage('success', true)"
+      >success</if-button
+    >
+    <if-button type="info" @click="handleMessage('info', true)">info</if-button>
+    <if-button type="warning" @click="handleMessage('warning', true)"
+      >warning</if-button
+    >
+    <if-button type="danger" @click="handleMessage('error', true)"
+      >danger</if-button
+    >
+    <h3>Message time</h3>
+    <if-button type="success" @click="handleMessage('success', true, 1000)"
+      >1s</if-button
+    >
+    <if-button type="success" @click="handleMessage('success', true, 5000)"
+      >5s</if-button
+    >
   </div>
 </template>
 
@@ -69,6 +98,17 @@ const loading = ref(true);
 setTimeout(() => {
   loading.value = false;
 }, 3000);
+
+import { IfMessage } from "@ifui/components";
+
+const handleMessage = (type, showClose, time) => {
+  IfMessage({
+    type,
+    message: type,
+    showClose,
+    duration: time,
+  });
+};
 </script>
 
 <style scoped></style>
